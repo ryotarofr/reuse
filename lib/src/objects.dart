@@ -33,30 +33,21 @@ class RequiredMap<K, V> extends MapBase<K, V> {
   }
 }
 
-typedef SafeKeyMap<K extends Object, V> = Map<K, V>;
-typedef SafeEntry<K extends Object, V> = MapEntry<K, V>;
-
 class Objects {
   /// Returns a lazy iterable of tuples, each containing the index and
   /// the corresponding map entry.
   ///
   /// For record types, see below.
   /// > https://dart.dev/language/records
-  // static Iterable<(int, MapEntry<K, V>)> _indexedEntries<K extends Object, V>(
-  //   Map<K, V> map,
-  // ) => entries(map).indexed.map((e) => (e.$1, e.$2));
-  static Iterable<(int, SafeEntry<K, V>)> _indexedEntries<K extends Object, V>(
-    SafeKeyMap<K, V> map,
-  ) => map.entries.indexed.map((e) => (e.$1, e.$2));
+  static Iterable<(int, MapEntry<K, V>)> _indexedEntries<K extends Object, V>(
+    Map<K, V> map,
+  ) => entries(map).indexed.map((e) => (e.$1, e.$2));
 
   /// Get the keys of the map
   ///
   /// `K` must extend `Object` to ensure non-nullability
   /// This effectively becomes a constraint that “K is not a null-allowed type.”
   static Iterable<K> keys<K extends Object, V>(Map<K, V> map) => map.keys;
-  // static Iterable<K> keys<SafeKeyMap>(Map<K, V> map) => map.keys;
-  // static Iterable<K> safeKeys<K extends Object, V>(SafeKeyMap<K, V> map) =>
-  //     map.keys;
 
   /// Get the values of the map
   static Iterable<V> values<K, V>(Map<K, V> map) => map.values;
