@@ -33,12 +33,25 @@ class RequiredMap<K, V> extends MapBase<K, V> {
   }
 }
 
+/// A utility class for working with Map objects.
+///
+/// This class is written using the recommended syntax for Dart v3.0 and later.
+/// The generic type [<K extends Object, V>] used throughout ensures that
+///  K is a type that does not permit null values within Dart's type system.
 class Objects {
   /// Returns a lazy iterable of tuples, each containing the index and
   /// the corresponding map entry.
   ///
   /// For record types, see below.
   /// > https://dart.dev/language/records
+  ///
+  /// Example:
+  /// ```dart
+  /// final myMap = {'hoge': 1, 'fuga': 2, 'piyo': 3};
+  /// final indexedEntries = Objects._indexedEntries(myMap);
+  /// print(indexedEntries)
+  /// // ((0, MapEntry('hoge', 1)), (1, MapEntry('fuga', 2)), (2, MapEntry('piyo', 3)))
+  /// ```
   static Iterable<(int, MapEntry<K, V>)> _indexedEntries<K extends Object, V>(
     Map<K, V> map,
   ) => entries(map).indexed.map((e) => (e.$1, e.$2));
@@ -47,6 +60,14 @@ class Objects {
   ///
   /// `K` must extend `Object` to ensure non-nullability
   /// This effectively becomes a constraint that “K is not a null-allowed type.”
+  ///
+  /// Example:
+  /// ```dart
+  /// final myMap = {'name': 'Hoge', 'age': 77};
+  /// final keys = Objects.keys(myMap);
+  /// print(keys)
+  /// // ('name', 'age')
+  /// ```
   static Iterable<K> keys<K extends Object, V>(Map<K, V> map) => map.keys;
 
   /// Get the values of the map
@@ -54,11 +75,44 @@ class Objects {
 
   /// Get the entries of the map
   ///
+  /// `K` must extend `Object` to ensure non-nullability
+  /// This effectively becomes a constraint that “K is not a null-allowed type.”
   ///
+  /// Example:
+  /// ```dart
+  /// final myMap = {'name': 'Hoge', 'age': 77};
+  /// final entries = Objects.entries(myMap);
+  /// print(entries)
+  /// // (MapEntry('name', 'Hoge'), MapEntry('age', 77))
+  /// ```
   static Iterable<MapEntry<K, V>> entries<K extends Object, V>(Map<K, V> map) =>
       map.entries;
+
+  /// Create a map from entries
+  ///
+  /// Example:
+  /// ```dart
+  /// final entries = Objects.entries(myMap);
+  /// final newMap = Objects.fromEntries(entries);
+  /// print(newMap)
+  /// // {'name': 'Hoge', 'age': 77}
+  /// ```
   static Map<K, V> fromEntries<K, V>(Iterable<MapEntry<K, V>> entries) =>
       Map.fromEntries(entries);
+
+  /// Map over the map's entries
+  ///
+  /// The mapper function receives both the entry and its index.
+  /// Example:
+  /// ```dart
+  /// final myMap = {'name': 'Hoge', 'age': 77};
+  /// final mapped = Objects.map<String, dynamic, String>(
+  ///   myMap,
+  ///   (entry, index) => '${entry.value} (index: $index)',
+  /// );
+  /// print(mapped);
+  /// // {'name': 'Hoge (index: 0)', 'age': '77 (index: 1)'}
+  /// ```
   static Map<K, R> map<K extends Object, V, R>(
     Map<K, V> map,
     R Function(MapEntry<K, V> entry, int index) mapper,
@@ -67,6 +121,20 @@ class Objects {
       map,
     ).map((record) => MapEntry(record.$2.key, mapper(record.$2, record.$1))),
   );
+
+  /// Filter the map's entries
+  ///
+  /// The predicate function receives both the entry and its index.
+  /// Example:
+  /// ```dart
+  /// final myMap = {'name': 'Hoge', 'age': 77, 'city': 'Tokyo', 'country': 'Japan'};
+  /// final filtered = Objects.filter(
+  ///   myMap,
+  ///   (entry, index) => entry.value is String && entry.value.toString().length > 4,
+  /// );
+  /// print(filtered);
+  /// // {'country': 'Japan', 'city': 'Tokyo'}
+  /// ```
   static Map<K, V> filter<K extends Object, V>(
     Map<K, V> map,
     bool Function(MapEntry<K, V> entry, int index) predicate,
@@ -75,25 +143,49 @@ class Objects {
         .where((idxEntry) => predicate(idxEntry.$2, idxEntry.$1))
         .map((idxEntry) => idxEntry.$2),
   );
+
+  /// Find the first entry that matches the predicate
+  ///
+  /// The predicate function receives both the entry and its index.
+  /// Example:
+  /// ```dart
+  /// final myMap = {'name': 'Hoge', 'age': 77, 'city': 'Tokyo', 'country': 'Japan'};
+  /// final found = Objects.find(myMap, (entry, index) => entry.value == 77);
+  /// print(found);
+  /// // MapEntry('age', 77)
+  /// ```
   static MapEntry<K, V>? find<K extends Object, V>(
     Map<K, V> map,
     bool Function(MapEntry<K, V> entry, int index) predicate,
   ) => _indexedEntries(
     map,
   ).firstWhereOrNull((idxEntry) => predicate(idxEntry.$2, idxEntry.$1))?.$2;
+
+  /// Check if all values are non-null and return a RequiredMap
+  ///
+  /// If any value is null, return null
+  /// Example:
+  /// ```dart
+  /// final Map<String, int?> nullableMap = {'a': 1, 'b': 2, 'c': null};
+  /// final requiredMap = Objects.required(nullableMap);
+  /// print(requiredMap); // null (because 'c' is null)
+  /// final Map<String, int?> nonNullMap = {'a': 1, 'b': 2, 'c': 3};
+  /// final requiredMap2 = Objects.required(nonNullMap);
+  /// print(requiredMap2); // RequiredMap({'a': 1, 'b': 2, 'c': 3})
+  /// ```
   static RequiredMap<K, V>? required<K, V>(Map<K, V?> map) =>
-      /// 引数の型 `Map<K, V?> map` はもっとも一般的なものを採用
+      /// The argument type `Map<K, V?> map` adopts the most common form.
       map.values.contains(null) ? null : RequiredMap<K, V>(map.cast<K, V>());
   static Map<K, V>? pick<K, V>(Map<K, V?> map, dynamic fields) {
     if (fields is K) {
-      // 単一のキーの場合
+      // For a single field
       final value = map[fields];
       if (value == null) {
         return null;
       }
       return {fields: value};
     } else if (fields is List<K>) {
-      // リストの場合
+      // for lists
       final result = <K, V>{};
       for (final field in fields) {
         final value = map[field];
@@ -130,7 +222,7 @@ extension MapObjectsExtension<K, V> on Map<K, V> {
   }
 }
 
-// nullable値を持つMapの拡張
+// nullableなMapに対して拡張を提供
 extension NullableMapExtension<K, V> on Map<K, V?> {
   /// すべての値がnon-nullかチェックし、non-nullのMapを返す
   RequiredMap<K, V>? get required => Objects.required(this);
